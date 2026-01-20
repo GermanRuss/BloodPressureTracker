@@ -1,5 +1,5 @@
-﻿using BloodPressureTracker.Services;
-using BloodPressureTracker.Services.Interfaces;
+﻿using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Hosting;
 
 namespace BloodPressureTracker
 {

@@ -6,79 +6,57 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using static Android.Provider.SyncStateContract;
-using MyConstants = BloodPressureTracker.Utils.Constants;
+using Microsoft.Maui.Storage;
 
 namespace BloodPressureTracker.Services
 {
-    public class DatabaseService : Interfaces.IDatabaseService
+    public class DatabaseService : IDatabaseService
     {
         private SQLiteAsyncConnection _database;
-        private bool _isInitialized = false;
+        private bool _initialized = false;
+        private readonly object _lock = new object();
 
         public DatabaseService()
         {
-            //InitializeAsync().SafeFireAndForget(false);
-            InitializeAsync();
         }
 
-        private async Task InitializeAsync()
+        // Инициализация базы данных
+        private async Task InitializeDatabase()
         {
-            try
+            if (_initialized) return;
+
+            lock (_lock)
             {
-                if (_isInitialized && _database != null)
-                    return;
+                if (_initialized) return;
 
-                // Получаем путь для базы данных
-                var databasePath = Path.Combine(
-                    FileSystem.AppDataDirectory,
-                    //Constants.DATABASE_NAME);
-                    MyConstants.DATABASE_NAME);
-
+                var databasePath = Path.Combine(FileSystem.AppDataDirectory, "bloodpressure.db3");
                 _database = new SQLiteAsyncConnection(databasePath);
 
                 // Создаем таблицы
-                await _database.CreateTableAsync<BloodPressureRecord>();
-                await _database.CreateTableAsync<MedicationReminder>();
-                await _database.CreateTableAsync<AppSettings>();
+                _database.CreateTableAsync<BloodPressureRecord>().Wait();
+                _database.CreateTableAsync<AppSettings>().Wait();
+                _database.CreateTableAsync<MedicationReminder>().Wait();
 
-                // Проверяем, есть ли настройки по умолчанию
-                var settings = await GetAppSettingsAsync();
-                if (settings == null)
-                {
-                    var defaultSettings = new AppSettings();
-                    await SaveAppSettingsAsync(defaultSettings);
-                }
-
-                _isInitialized = true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка инициализации БД: {ex.Message}");
-                throw;
+                _initialized = true;
             }
         }
 
-        private async Task EnsureInitializedAsync()
+        // Реализация методов интерфейса
+
+        public Task InitializeDatabaseAsync()
         {
-            if (!_isInitialized || _database == null)
-            {
-                await InitializeAsync();
-            }
+            return InitializeDatabase();
         }
 
-        // ============ Методы для записей давления ============
         public async Task<int> AddBloodPressureRecordAsync(BloodPressureRecord record)
         {
-            await EnsureInitializedAsync();
-            record.CreatedAt = DateTime.Now;
-            record.UpdatedAt = DateTime.Now;
+            await InitializeDatabase();
             return await _database.InsertAsync(record);
         }
 
         public async Task<bool> UpdateBloodPressureRecordAsync(BloodPressureRecord record)
         {
-            await EnsureInitializedAsync();
+            await InitializeDatabase();
             record.UpdatedAt = DateTime.Now;
             var result = await _database.UpdateAsync(record);
             return result > 0;
@@ -86,176 +64,136 @@ namespace BloodPressureTracker.Services
 
         public async Task<bool> DeleteBloodPressureRecordAsync(int id)
         {
-            await EnsureInitializedAsync();
-            var record = await GetBloodPressureRecordAsync(id);
-            if (record != null)
-            {
-                var result = await _database.DeleteAsync(record);
-                return result > 0;
-            }
-            return false;
+            await InitializeDatabase();
+            var result = await _database.DeleteAsync<BloodPressureRecord>(id);
+            return result > 0;
         }
 
         public async Task<BloodPressureRecord> GetBloodPressureRecordAsync(int id)
         {
-            await EnsureInitializedAsync();
+            await InitializeDatabase();
             return await _database.Table<BloodPressureRecord>()
-                .FirstOrDefaultAsync(r => r.Id == id);
+                .Where(r => r.Id == id)
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<List<BloodPressureRecord>> GetBloodPressureRecordsAsync(
-            DateTime startDate, DateTime endDate)
+        public async Task<List<BloodPressureRecord>> GetBloodPressureRecordsAsync(DateTime startDate, DateTime endDate)
         {
-            await EnsureInitializedAsync();
+            await InitializeDatabase();
             return await _database.Table<BloodPressureRecord>()
                 .Where(r => r.Date >= startDate && r.Date <= endDate)
-                .OrderByDescending(r => r.Date)
                 .ToListAsync();
         }
 
         public async Task<List<BloodPressureRecord>> GetAllBloodPressureRecordsAsync()
         {
-            await EnsureInitializedAsync();
-            return await _database.Table<BloodPressureRecord>()
-                .OrderByDescending(r => r.Date)
-                .ToListAsync();
+            await InitializeDatabase();
+            return await _database.Table<BloodPressureRecord>().ToListAsync();
         }
 
-        // ============ Методы для настроек ============
         public async Task<AppSettings> GetAppSettingsAsync()
         {
-            await EnsureInitializedAsync();
-            return await _database.Table<AppSettings>().FirstOrDefaultAsync();
+            await InitializeDatabase();
+            var settings = await _database.Table<AppSettings>().FirstOrDefaultAsync();
+            return settings ?? new AppSettings();
         }
 
         public async Task<bool> SaveAppSettingsAsync(AppSettings settings)
         {
-            await EnsureInitializedAsync();
-
-            var existing = await GetAppSettingsAsync();
-            if (existing == null)
+            await InitializeDatabase();
+            if (settings.Id == 0)
             {
                 var result = await _database.InsertAsync(settings);
                 return result > 0;
             }
             else
             {
-                settings.Id = existing.Id;
                 var result = await _database.UpdateAsync(settings);
                 return result > 0;
             }
         }
 
-        // ============ Методы для напоминаний о лекарствах ============
         public async Task<List<MedicationReminder>> GetMedicationRemindersAsync()
         {
-            await EnsureInitializedAsync();
-            return await _database.Table<MedicationReminder>()
-                .OrderBy(r => r.MedicationName)
-                .ToListAsync();
+            await InitializeDatabase();
+            return await _database.Table<MedicationReminder>().ToListAsync();
         }
 
         public async Task<int> AddMedicationReminderAsync(MedicationReminder reminder)
         {
-            await EnsureInitializedAsync();
+            await InitializeDatabase();
             return await _database.InsertAsync(reminder);
         }
 
         public async Task<bool> UpdateMedicationReminderAsync(MedicationReminder reminder)
         {
-            await EnsureInitializedAsync();
+            await InitializeDatabase();
             var result = await _database.UpdateAsync(reminder);
             return result > 0;
         }
 
         public async Task<bool> DeleteMedicationReminderAsync(int id)
         {
-            await EnsureInitializedAsync();
-            var reminder = await _database.Table<MedicationReminder>()
-                .FirstOrDefaultAsync(r => r.Id == id);
-            if (reminder != null)
-            {
-                var result = await _database.DeleteAsync(reminder);
-                return result > 0;
-            }
-            return false;
+            await InitializeDatabase();
+            var result = await _database.DeleteAsync<MedicationReminder>(id);
+            return result > 0;
         }
 
-        public async Task InitializeDatabaseAsync()
-        {
-            await InitializeAsync(); // Просто вызывает уже существующий приватный метод
-        }
-
-        // ============ Методы для статистики ============
         public async Task<Statistics> GetStatisticsAsync(DateTime startDate, DateTime endDate)
         {
-            await EnsureInitializedAsync();
-
+            await InitializeDatabase();
             var records = await GetBloodPressureRecordsAsync(startDate, endDate);
-            if (records == null || records.Count == 0)
-                return new Statistics();
 
-            var stats = new Statistics
-            {
-                AverageSystolic = Math.Round(records
-                    .Where(r => r.SystolicMorning > 0 && r.SystolicAfternoon > 0 && r.SystolicEvening > 0)
-                    .SelectMany(r => new[] { r.SystolicMorning, r.SystolicAfternoon, r.SystolicEvening })
-                    .Average(), 1),
+            var statistics = new Statistics();
 
-                AverageDiastolic = Math.Round(records
-                    .Where(r => r.DiastolicMorning > 0 && r.DiastolicAfternoon > 0 && r.DiastolicEvening > 0)
-                    .SelectMany(r => new[] { r.DiastolicMorning, r.DiastolicAfternoon, r.DiastolicEvening })
-                    .Average(), 1),
+            if (!records.Any())
+                return statistics;
 
-                AveragePulse = Math.Round(records
-                    .Where(r => r.PulseMorning > 0 && r.PulseAfternoon > 0 && r.PulseEvening > 0)
-                    .SelectMany(r => new[] { r.PulseMorning, r.PulseAfternoon, r.PulseEvening })
-                    .Average(), 1),
-
-                HypertensiveCrises = records.Count(r =>
-                    r.SystolicMorning >= 180 || r.SystolicAfternoon >= 180 || r.SystolicEvening >= 180 ||
-                    r.DiastolicMorning >= 120 || r.DiastolicAfternoon >= 120 || r.DiastolicEvening >= 120)
-            };
-
-            // Анализ уровней давления
-            stats.PressureLevels = new Dictionary<string, int>
-            {
-                ["Нормальное"] = 0,
-                ["Повышенное"] = 0,
-                ["Гипертония 1"] = 0,
-                ["Гипертония 2"] = 0,
-                ["Криз"] = 0
-            };
+            // Собираем все значения давления
+            var systolicValues = new List<int>();
+            var diastolicValues = new List<int>();
+            var pulseValues = new List<int>();
 
             foreach (var record in records)
             {
-                var pressures = new[]
+                if (record.SystolicMorning > 0 && record.DiastolicMorning > 0)
                 {
-                    (record.SystolicMorning, record.DiastolicMorning),
-                    (record.SystolicAfternoon, record.DiastolicAfternoon),
-                    (record.SystolicEvening, record.DiastolicEvening)
-                };
+                    systolicValues.Add(record.SystolicMorning);
+                    diastolicValues.Add(record.DiastolicMorning);
+                    pulseValues.Add(record.PulseMorning);
+                }
 
-                foreach (var (systolic, diastolic) in pressures)
+                if (record.SystolicAfternoon > 0 && record.DiastolicAfternoon > 0)
                 {
-                    if (systolic > 0 && diastolic > 0)
-                    {
-                        var category = GetPressureCategory(systolic, diastolic);
-                        stats.PressureLevels[category]++;
-                    }
+                    systolicValues.Add(record.SystolicAfternoon);
+                    diastolicValues.Add(record.DiastolicAfternoon);
+                    pulseValues.Add(record.PulseAfternoon);
+                }
+
+                if (record.SystolicEvening > 0 && record.DiastolicEvening > 0)
+                {
+                    systolicValues.Add(record.SystolicEvening);
+                    diastolicValues.Add(record.DiastolicEvening);
+                    pulseValues.Add(record.PulseEvening);
                 }
             }
 
-            return stats;
-        }
+            if (systolicValues.Any())
+            {
+                statistics.AverageSystolic = systolicValues.Average();
+                statistics.AverageDiastolic = diastolicValues.Average();
+                statistics.AveragePulse = pulseValues.Any(p => p > 0) ? pulseValues.Where(p => p > 0).Average() : 0;
+            }
 
-        private string GetPressureCategory(int systolic, int diastolic)
-        {
-            if (systolic < 120 && diastolic < 80) return "Нормальное";
-            if (systolic <= 129 && diastolic <= 84) return "Повышенное";
-            if (systolic <= 139 || diastolic <= 89) return "Гипертония 1";
-            if (systolic <= 159 || diastolic <= 99) return "Гипертония 2";
-            return "Криз";
+            // Подсчет гипертонических кризов
+            statistics.HypertensiveCrises = records.Count(r =>
+                r.SystolicMorning >= 180 || r.DiastolicMorning >= 110 ||
+                r.SystolicAfternoon >= 180 || r.DiastolicAfternoon >= 110 ||
+                r.SystolicEvening >= 180 || r.DiastolicEvening >= 110);
+
+            statistics.PressureLevels = new Dictionary<string, int>();
+
+            return statistics;
         }
     }
 }

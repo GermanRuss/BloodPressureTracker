@@ -1,42 +1,44 @@
-﻿using Microsoft.Extensions.Logging;
-using BloodPressureTracker.Services;
+﻿using BloodPressureTracker.Services;
 using BloodPressureTracker.Services.Interfaces;
 using BloodPressureTracker.ViewModels;
 using BloodPressureTracker.Views;
-using CommunityToolkit.Maui;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Controls.Hosting;
+using Microsoft.Maui.Hosting;
 
-namespace BloodPressureTracker;
-
-public static class MauiProgram
+namespace BloodPressureTracker
 {
-    public static MauiApp CreateMauiApp()
+    public static class MauiProgram
     {
-        var builder = MauiApp.CreateBuilder();
-        builder
-            .UseMauiApp<App>()
-            .UseMauiCommunityToolkit()
-            .ConfigureFonts(fonts =>
-            {
-                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-            });
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                });
 
-        // ВАЖНО: УБЕРИТЕ UseLocalNotification и AddDebug пока не установлены пакеты
+#if DEBUG
+            builder.Logging.AddDebug();
+#endif
 
-        // Регистрация СУЩЕСТВУЮЩИХ сервисов
-        builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
-        builder.Services.AddSingleton<INotificationService, NotificationService>();
+            // Регистрация сервисов
+            builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
+            builder.Services.AddSingleton<INotificationService, NotificationService>();
 
-        // Регистрация СУЩЕСТВУЮЩИХ ViewModels
-        builder.Services.AddTransient<MainViewModel>();
-        builder.Services.AddTransient<AddRecordViewModel>();
-        // StatisticsViewModel, SettingsViewModel и другие пока НЕ регистрируем
+            // Регистрация ViewModels
+            builder.Services.AddTransient<MainViewModel>();
+            builder.Services.AddTransient<AddRecordViewModel>();
 
-        // Регистрация СУЩЕСТВУЮЩИХ страниц
-        builder.Services.AddTransient<MainPage>();
-        builder.Services.AddTransient<AddRecordPage>();
-        // StatisticsPage, SettingsPage и другие пока НЕ регистрируем
+            // Регистрация Views
+            builder.Services.AddTransient<MainPage>();
+            builder.Services.AddTransient<AddRecordPage>();
 
-        return builder.Build();
+            return builder.Build();
+        }
     }
 }

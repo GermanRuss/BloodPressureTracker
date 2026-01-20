@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
-using BloodPressureTracker.Utils;
-using System.Windows.Input;
 using BloodPressureTracker.Models;
 using BloodPressureTracker.Services.Interfaces;
+using BloodPressureTracker.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.Controls;  // Для Shell и DisplayAlert
+using Microsoft.Maui.Graphics;  // ДЛЯ Color!
 
 namespace BloodPressureTracker.ViewModels
 {
@@ -26,6 +28,12 @@ namespace BloodPressureTracker.ViewModels
         [ObservableProperty]
         private string _morningPulse;
 
+        [ObservableProperty]
+        private string _morningValidationStatus = "";
+
+        [ObservableProperty]
+        private Color _morningValidationColor = Colors.Transparent;
+
         // Обеденные показания
         [ObservableProperty]
         private string _afternoonSystolic;
@@ -35,6 +43,12 @@ namespace BloodPressureTracker.ViewModels
 
         [ObservableProperty]
         private string _afternoonPulse;
+
+        [ObservableProperty]
+        private string _afternoonValidationStatus = "";
+
+        [ObservableProperty]
+        private Color _afternoonValidationColor = Colors.Transparent;
 
         // Вечерние показания
         [ObservableProperty]
@@ -47,20 +61,18 @@ namespace BloodPressureTracker.ViewModels
         private string _eveningPulse;
 
         [ObservableProperty]
-        private string _notes;
+        private string _eveningValidationStatus = "";
 
-        public ICommand SaveCommand { get; }
-        //public ICommand CancelCommand { get; }
+        [ObservableProperty]
+        private Color _eveningValidationColor = Colors.Transparent;
+
+        [ObservableProperty]
+        private string _notes;
 
         public AddRecordViewModel(IDatabaseService databaseService)
         {
             _databaseService = databaseService;
             Title = "Добавить запись";
-
-            SaveCommand = new AsyncRelayCommand(SaveRecordAsync);
-            //CancelCommand = new AsyncRelayCommand(CancelAsync);
-
-            // Загружаем существующую запись на сегодня, если есть
             LoadExistingRecordAsync().SafeFireAndForget(false);
         }
 
@@ -74,112 +86,85 @@ namespace BloodPressureTracker.ViewModels
                 var existingRecord = records.FirstOrDefault();
                 if (existingRecord != null)
                 {
-                    // Заполняем поля существующей записью
-                    MorningSystolic = existingRecord.SystolicMorning > 0
-                        ? existingRecord.SystolicMorning.ToString() : "";
-                    MorningDiastolic = existingRecord.DiastolicMorning > 0
-                        ? existingRecord.DiastolicMorning.ToString() : "";
-                    MorningPulse = existingRecord.PulseMorning > 0
-                        ? existingRecord.PulseMorning.ToString() : "";
+                    MorningSystolic = existingRecord.SystolicMorning > 0 ? existingRecord.SystolicMorning.ToString() : "";
+                    MorningDiastolic = existingRecord.DiastolicMorning > 0 ? existingRecord.DiastolicMorning.ToString() : "";
+                    MorningPulse = existingRecord.PulseMorning > 0 ? existingRecord.PulseMorning.ToString() : "";
 
-                    AfternoonSystolic = existingRecord.SystolicAfternoon > 0
-                        ? existingRecord.SystolicAfternoon.ToString() : "";
-                    AfternoonDiastolic = existingRecord.DiastolicAfternoon > 0
-                        ? existingRecord.DiastolicAfternoon.ToString() : "";
-                    AfternoonPulse = existingRecord.PulseAfternoon > 0
-                        ? existingRecord.PulseAfternoon.ToString() : "";
+                    AfternoonSystolic = existingRecord.SystolicAfternoon > 0 ? existingRecord.SystolicAfternoon.ToString() : "";
+                    AfternoonDiastolic = existingRecord.DiastolicAfternoon > 0 ? existingRecord.DiastolicAfternoon.ToString() : "";
+                    AfternoonPulse = existingRecord.PulseAfternoon > 0 ? existingRecord.PulseAfternoon.ToString() : "";
 
-                    EveningSystolic = existingRecord.SystolicEvening > 0
-                        ? existingRecord.SystolicEvening.ToString() : "";
-                    EveningDiastolic = existingRecord.DiastolicEvening > 0
-                        ? existingRecord.DiastolicEvening.ToString() : "";
-                    EveningPulse = existingRecord.PulseEvening > 0
-                        ? existingRecord.PulseEvening.ToString() : "";
+                    EveningSystolic = existingRecord.SystolicEvening > 0 ? existingRecord.SystolicEvening.ToString() : "";
+                    EveningDiastolic = existingRecord.DiastolicEvening > 0 ? existingRecord.DiastolicEvening.ToString() : "";
+                    EveningPulse = existingRecord.PulseEvening > 0 ? existingRecord.PulseEvening.ToString() : "";
 
                     Notes = existingRecord.Notes;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка загрузки записи: {ex.Message}");
+                await Shell.Current.DisplayAlert("Ошибка", $"Не удалось загрузить запись: {ex.Message}", "OK");
             }
         }
 
         [RelayCommand]
         private async Task SaveRecordAsync()
         {
-            if (IsBusy)
-                return;
-
+            if (IsBusy) return;
             IsBusy = true;
 
             try
             {
-                // Валидация данных
                 if (!ValidateInputs())
                 {
-                    await Shell.Current.DisplayAlert("Ошибка",
-                        "Проверьте правильность введенных данных", "OK");
+                    await Shell.Current.DisplayAlert("Ошибка", "Проверьте правильность введенных данных", "OK");
                     return;
                 }
 
-                // Создаем запись
                 var record = new BloodPressureRecord
                 {
                     Date = SelectedDate,
-
                     SystolicMorning = ParseInt(MorningSystolic),
                     DiastolicMorning = ParseInt(MorningDiastolic),
                     PulseMorning = ParseInt(MorningPulse),
-
                     SystolicAfternoon = ParseInt(AfternoonSystolic),
                     DiastolicAfternoon = ParseInt(AfternoonDiastolic),
                     PulseAfternoon = ParseInt(AfternoonPulse),
-
                     SystolicEvening = ParseInt(EveningSystolic),
                     DiastolicEvening = ParseInt(EveningDiastolic),
                     PulseEvening = ParseInt(EveningPulse),
-
-                    Notes = Notes
+                    Notes = Notes,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
                 };
 
-                // Проверяем, существует ли уже запись на эту дату
                 var existingRecords = await _databaseService.GetBloodPressureRecordsAsync(
                     SelectedDate, SelectedDate.AddDays(1));
 
-                if (existingRecords.Count > 0)
+                if (existingRecords.Any())
                 {
-                    // Обновляем существующую запись
                     var existingRecord = existingRecords.First();
                     record.Id = existingRecord.Id;
                     record.CreatedAt = existingRecord.CreatedAt;
 
-                    var success = await _databaseService.UpdateBloodPressureRecordAsync(record);
-
-                    if (success)
+                    if (await _databaseService.UpdateBloodPressureRecordAsync(record))
                     {
-                        await Shell.Current.DisplayAlert("Успех",
-                            "Запись обновлена", "OK");
+                        await Shell.Current.DisplayAlert("Успех", "Запись обновлена", "OK");
                         await Shell.Current.GoToAsync("..");
                     }
                 }
                 else
                 {
-                    // Создаем новую запись
-                    var id = await _databaseService.AddBloodPressureRecordAsync(record);
-
-                    if (id > 0)
+                    if (await _databaseService.AddBloodPressureRecordAsync(record) > 0)
                     {
-                        await Shell.Current.DisplayAlert("Успех",
-                            "Запись сохранена", "OK");
+                        await Shell.Current.DisplayAlert("Успех", "Запись сохранена", "OK");
                         await Shell.Current.GoToAsync("..");
                     }
                 }
             }
             catch (Exception ex)
             {
-                await Shell.Current.DisplayAlert("Ошибка",
-                    $"Не удалось сохранить запись: {ex.Message}", "OK");
+                await Shell.Current.DisplayAlert("Ошибка", $"Не удалось сохранить запись: {ex.Message}", "OK");
             }
             finally
             {
@@ -189,61 +174,74 @@ namespace BloodPressureTracker.ViewModels
 
         private bool ValidateInputs()
         {
-            // Проверяем утренние показания
-            if (!string.IsNullOrEmpty(MorningSystolic) ||
-                !string.IsNullOrEmpty(MorningDiastolic))
-            {
-                if (!int.TryParse(MorningSystolic, out int systolic) ||
-                    !int.TryParse(MorningDiastolic, out int diastolic))
-                    return false;
+            bool isValid = true;
 
-                if (!Validators.IsValidPressure(systolic, diastolic))
-                    return false;
+            MorningValidationStatus = "";
+            MorningValidationColor = Colors.Transparent;
+            AfternoonValidationStatus = "";
+            AfternoonValidationColor = Colors.Transparent;
+            EveningValidationStatus = "";
+            EveningValidationColor = Colors.Transparent;
+
+            // Проверка утренних показаний
+            if (!string.IsNullOrEmpty(MorningSystolic) || !string.IsNullOrEmpty(MorningDiastolic))
+            {
+                if (!int.TryParse(MorningSystolic, out int systolic) || !int.TryParse(MorningDiastolic, out int diastolic))
+                {
+                    MorningValidationStatus = "Некорректные значения";
+                    MorningValidationColor = Colors.Red;
+                    isValid = false;
+                }
+                else if (!Validators.IsValidPressure(systolic, diastolic))
+                {
+                    MorningValidationStatus = "Недопустимые значения давления";
+                    MorningValidationColor = Colors.Orange;
+                    isValid = false;
+                }
             }
 
-            // Проверяем обеденные показания
-            if (!string.IsNullOrEmpty(AfternoonSystolic) ||
-                !string.IsNullOrEmpty(AfternoonDiastolic))
+            // Проверка обеденных показаний
+            if (!string.IsNullOrEmpty(AfternoonSystolic) || !string.IsNullOrEmpty(AfternoonDiastolic))
             {
-                if (!int.TryParse(AfternoonSystolic, out int systolic) ||
-                    !int.TryParse(AfternoonDiastolic, out int diastolic))
-                    return false;
-
-                if (!Validators.IsValidPressure(systolic, diastolic))
-                    return false;
+                if (!int.TryParse(AfternoonSystolic, out int systolic) || !int.TryParse(AfternoonDiastolic, out int diastolic))
+                {
+                    AfternoonValidationStatus = "Некорректные значения";
+                    AfternoonValidationColor = Colors.Red;
+                    isValid = false;
+                }
+                else if (!Validators.IsValidPressure(systolic, diastolic))
+                {
+                    AfternoonValidationStatus = "Недопустимые значения давления";
+                    AfternoonValidationColor = Colors.Orange;
+                    isValid = false;
+                }
             }
 
-            // Проверяем вечерние показания
-            if (!string.IsNullOrEmpty(EveningSystolic) ||
-                !string.IsNullOrEmpty(EveningDiastolic))
+            // Проверка вечерних показаний
+            if (!string.IsNullOrEmpty(EveningSystolic) || !string.IsNullOrEmpty(EveningDiastolic))
             {
-                if (!int.TryParse(EveningSystolic, out int systolic) ||
-                    !int.TryParse(EveningDiastolic, out int diastolic))
-                    return false;
-
-                if (!Validators.IsValidPressure(systolic, diastolic))
-                    return false;
+                if (!int.TryParse(EveningSystolic, out int systolic) || !int.TryParse(EveningDiastolic, out int diastolic))
+                {
+                    EveningValidationStatus = "Некорректные значения";
+                    EveningValidationColor = Colors.Red;
+                    isValid = false;
+                }
+                else if (!Validators.IsValidPressure(systolic, diastolic))
+                {
+                    EveningValidationStatus = "Недопустимые значения давления";
+                    EveningValidationColor = Colors.Orange;
+                    isValid = false;
+                }
             }
 
-            return true;
+            return isValid;
         }
 
-        private int ParseInt(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-                return 0;
-
-            if (int.TryParse(value, out int result))
-                return result;
-
-            return 0;
-        }
+        private int ParseInt(string value) =>
+            string.IsNullOrEmpty(value) ? 0 : (int.TryParse(value, out int result) ? result : 0);
 
         [RelayCommand]
-        private async Task CancelAsync()
-        {
-            await Shell.Current.GoToAsync("..");
-        }
+        private async Task CancelAsync() => await Shell.Current.GoToAsync("..");
 
         [RelayCommand]
         private void ClearMorning()
@@ -251,6 +249,8 @@ namespace BloodPressureTracker.ViewModels
             MorningSystolic = "";
             MorningDiastolic = "";
             MorningPulse = "";
+            MorningValidationStatus = "";
+            MorningValidationColor = Colors.Transparent;
         }
 
         [RelayCommand]
@@ -259,6 +259,8 @@ namespace BloodPressureTracker.ViewModels
             AfternoonSystolic = "";
             AfternoonDiastolic = "";
             AfternoonPulse = "";
+            AfternoonValidationStatus = "";
+            AfternoonValidationColor = Colors.Transparent;
         }
 
         [RelayCommand]
@@ -267,6 +269,8 @@ namespace BloodPressureTracker.ViewModels
             EveningSystolic = "";
             EveningDiastolic = "";
             EveningPulse = "";
+            EveningValidationStatus = "";
+            EveningValidationColor = Colors.Transparent;
         }
     }
 }

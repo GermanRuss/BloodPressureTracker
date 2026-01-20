@@ -1,60 +1,67 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<!-- ВРЕМЕННО: используем только Android для упрощения -->
 		<TargetFrameworks>net9.0-android</TargetFrameworks>
-		<!-- Убираем другие платформы пока не починим основное -->
-		<!-- <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks> -->
-
 		<OutputType>Exe</OutputType>
 		<RootNamespace>BloodPressureTracker</RootNamespace>
 		<UseMaui>true</UseMaui>
 		<SingleProject>true</SingleProject>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
 
-		<!-- Application details -->
-		<ApplicationId>com.yourcompany.bloodpressure</ApplicationId>
+		<!-- Идентификатор приложения -->
+		<ApplicationId>com.companyname.bloodpressuretracker</ApplicationId>
 		<ApplicationVersion>1</ApplicationVersion>
-		<ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
+		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 
-		<!-- Platform versions -->
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
-	</PropertyGroup>
+		<!-- Версии Android -->
+		<SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
+		<TargetAndroidVersion>34</TargetAndroidVersion>
 
-	<PropertyGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
-		<AndroidSupportedAbis>arm64-v8a</AndroidSupportedAbis>
+		<!-- Настройки сборки -->
+		<RuntimeIdentifiers>android-arm64;android-x86;android-x64</RuntimeIdentifiers>
+		<SkipValidateMauiImplicitPackageReferences>true</SkipValidateMauiImplicitPackageReferences>
+		<MauiEnableXamlCBindingWithSourceCompilation>true</MauiEnableXamlCBindingWithSourceCompilation>
+		<AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+
+		<!-- Убрать предупреждения -->
+		<AndroidUseDefaultAotProfile>false</AndroidUseDefaultAotProfile>
+		<EnableDefaultCssItems>false</EnableDefaultCssItems>
+		<EnableDefaultSplashScreenItems>false</EnableDefaultSplashScreenItems>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- ОСНОВНЫЕ ПАКЕТЫ (обновленные версии) -->
+		<!-- ОСНОВНЫЕ ПАКЕТЫ MAUI -->
+		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.120" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.120" />
+		<PackageReference Include="Microsoft.Maui.Graphics" Version="9.0.120" />
+		<PackageReference Include="Microsoft.Maui.Essentials" Version="9.0.120" />
+
+		<!-- SQLite для базы данных -->
 		<PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
-		<PackageReference Include="CommunityToolkit.Maui" Version="8.0.0" />
+		<PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.9" />
+
+		<!-- MVVM Toolkit -->
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
 
-		<!-- УВЕДОМЛЕНИЯ - УБИРАЕМ ВРЕМЕННО -->
-		<!-- <PackageReference Include="Plugin.LocalNotification" Version="11.0.1" /> -->
-
-		<!-- Xamarin.Essentials - УБИРАЕМ, т.к. есть конфликт -->
-		<!-- <PackageReference Include="Xamarin.Essentials" Version="1.8.1" /> -->
+		<!-- Логирование для отладки -->
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- Иконки и ресурсы -->
+		<!-- Иконка приложения -->
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" />
-		<MauiFont Include="Resources\Fonts\*" />
+
+		<!-- Шрифты -->
+		<Font Include="Resources\Fonts\*" />
+
+		<!-- Изображения -->
 		<MauiImage Include="Resources\Images\*" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- Platform specific -->
-		<AndroidManifest Include="Platforms\Android\AndroidManifest.xml" />
-	</ItemGroup>
+		<!-- Android-специфичные файлы -->
+		<AndroidResource Include="Platforms\Android\Resources\**" />
 
-	<ItemGroup>
-	  <MauiXaml Update="App.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
+		<!-- Удалите если нет таких файлов -->
+		<Compile Remove="Platforms\Android\**" Condition="!Exists('Platforms\Android')" />
+		<None Remove="Platforms\Android\**" Condition="!Exists('Platforms\Android')" />
 	</ItemGroup>
 </Project>

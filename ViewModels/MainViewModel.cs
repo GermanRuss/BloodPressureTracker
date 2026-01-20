@@ -2,13 +2,12 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using BloodPressureTracker.Models;
 using BloodPressureTracker.Services.Interfaces;
 using BloodPressureTracker.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;  // ДЛЯ Color!
 
 namespace BloodPressureTracker.ViewModels
 {
@@ -16,6 +15,12 @@ namespace BloodPressureTracker.ViewModels
     {
         private readonly IDatabaseService _databaseService;
         private readonly INotificationService _notificationService;
+
+        [ObservableProperty]
+        private DateTime _selectedDate = DateTime.Today;
+
+        [ObservableProperty]
+        private string _date = DateTime.Today.ToString("dd.MM.yyyy");
 
         [ObservableProperty]
         private BloodPressureRecord _todayRecord;
@@ -32,45 +37,33 @@ namespace BloodPressureTracker.ViewModels
         {
             _databaseService = databaseService;
             _notificationService = notificationService;
-
             Title = "Главная";
-
-            // Загружаем данные при создании ViewModel
-            LoadDataCommand.ExecuteAsync(null);
+            LoadDataAsync().SafeFireAndForget(false);
         }
 
         [RelayCommand]
         private async Task LoadDataAsync()
         {
-            if (IsBusy)
-                return;
-
+            if (IsBusy) return;
             IsBusy = true;
 
             try
             {
                 RecentRecords.Clear();
-
-                // Загружаем записи за последние 7 дней
                 var endDate = DateTime.Today;
                 var startDate = endDate.AddDays(-7);
 
                 var records = await _databaseService.GetBloodPressureRecordsAsync(startDate, endDate);
 
                 foreach (var record in records.OrderByDescending(r => r.Date))
-                {
                     RecentRecords.Add(record);
-                }
 
-                // Получаем сегодняшнюю запись
                 TodayRecord = records.FirstOrDefault(r => r.Date.Date == DateTime.Today.Date);
-
-                // Обновляем статус
                 UpdateTodayStatus();
             }
             catch (Exception ex)
             {
-                await Shell.Current.DisplayAlert("Ошибка",
+                await Microsoft.Maui.Controls.Shell.Current.DisplayAlert("Ошибка",
                     $"Не удалось загрузить данные: {ex.Message}", "OK");
             }
             finally
@@ -78,6 +71,9 @@ namespace BloodPressureTracker.ViewModels
                 IsBusy = false;
             }
         }
+
+        [RelayCommand]
+        private async Task RefreshAsync() => await LoadDataAsync();
 
         private void UpdateTodayStatus()
         {
@@ -88,7 +84,6 @@ namespace BloodPressureTracker.ViewModels
                 return;
             }
 
-            // Получаем последнее измерение за сегодня
             var (systolic, diastolic) = GetLatestMeasurement(TodayRecord);
 
             if (systolic == 0 || diastolic == 0)
@@ -98,9 +93,7 @@ namespace BloodPressureTracker.ViewModels
                 return;
             }
 
-            // Анализируем давление
             var category = Validators.GetPressureCategory(systolic, diastolic);
-
             TodayStatus = $"{systolic}/{diastolic} - {category}";
 
             StatusColor = category switch
@@ -117,15 +110,12 @@ namespace BloodPressureTracker.ViewModels
         {
             var now = DateTime.Now.TimeOfDay;
 
-            // Проверяем вечерние показания (после 18:00)
             if (now.Hours >= 18 && record.SystolicEvening > 0)
                 return (record.SystolicEvening, record.DiastolicEvening);
 
-            // Проверяем обеденные показания (после 12:00)
             if (now.Hours >= 12 && record.SystolicAfternoon > 0)
                 return (record.SystolicAfternoon, record.DiastolicAfternoon);
 
-            // Утренние показания
             if (record.SystolicMorning > 0)
                 return (record.SystolicMorning, record.DiastolicMorning);
 
@@ -133,65 +123,44 @@ namespace BloodPressureTracker.ViewModels
         }
 
         [RelayCommand]
-        private async Task AddRecordAsync()
-        {
-            await Shell.Current.GoToAsync("AddRecordPage");
-        }
+        private async Task AddRecordAsync() =>
+            await Microsoft.Maui.Controls.Shell.Current.GoToAsync("AddRecordPage");
 
         [RelayCommand]
-        private async Task ViewHistoryAsync()
-        {
-            await Shell.Current.GoToAsync("HistoryPage");
-        }
+        private async Task ViewHistoryAsync() =>
+            await Microsoft.Maui.Controls.Shell.Current.GoToAsync("HistoryPage");
 
         [RelayCommand]
-        private async Task ViewStatisticsAsync()
-        {
-            await Shell.Current.GoToAsync("StatisticsPage");
-        }
+        private async Task ViewStatisticsAsync() =>
+            await Microsoft.Maui.Controls.Shell.Current.GoToAsync("StatisticsPage");
 
         [RelayCommand]
-        private async Task ViewSettingsAsync()
-        {
-            await Shell.Current.GoToAsync("SettingsPage");
-        }
+        private async Task ViewSettingsAsync() =>
+            await Microsoft.Maui.Controls.Shell.Current.GoToAsync("SettingsPage");
 
         [RelayCommand]
-        private async Task ExportDataAsync()
-        {
-            await Shell.Current.GoToAsync("ExportPage");
-        }
+        private async Task ExportDataAsync() =>
+            await Microsoft.Maui.Controls.Shell.Current.GoToAsync("ExportPage");
 
         [RelayCommand]
         private async Task EditRecordAsync(BloodPressureRecord record)
         {
-            if (record == null)
-                return;
-
-            // Переходим на страницу редактирования с параметром
-            await Shell.Current.GoToAsync($"AddRecordPage?recordId={record.Id}");
+            if (record == null) return;
+            await Microsoft.Maui.Controls.Shell.Current.GoToAsync($"AddRecordPage?recordId={record.Id}");
         }
 
         [RelayCommand]
         private async Task DeleteRecordAsync(BloodPressureRecord record)
         {
-            if (record == null)
-                return;
+            if (record == null) return;
 
-            var confirm = await Shell.Current.DisplayAlert(
-                "Подтверждение",
-                $"Удалить запись от {record.Date:dd.MM.yyyy}?",
-                "Удалить",
-                "Отмена");
+            var confirm = await Microsoft.Maui.Controls.Shell.Current.DisplayAlert(
+                "Подтверждение", $"Удалить запись от {record.Date:dd.MM.yyyy}?", "Удалить", "Отмена");
 
-            if (confirm)
+            if (confirm && await _databaseService.DeleteBloodPressureRecordAsync(record.Id))
             {
-                var success = await _databaseService.DeleteBloodPressureRecordAsync(record.Id);
-                if (success)
-                {
-                    await LoadDataAsync();
-                    await Shell.Current.DisplayAlert("Успех", "Запись удалена", "OK");
-                }
+                await LoadDataAsync();
+                await Microsoft.Maui.Controls.Shell.Current.DisplayAlert("Успех", "Запись удалена", "OK");
             }
         }
     }
