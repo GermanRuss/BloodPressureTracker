@@ -4,6 +4,7 @@ namespace BloodPressureTracker.Models
 {
     public class AppSettings
     {
+        public int Id { get; set; }
         public TimeSpan MorningMeasurementTime { get; set; } = new TimeSpan(7, 0, 0);
         public TimeSpan AfternoonMeasurementTime { get; set; } = new TimeSpan(13, 0, 0);
         public TimeSpan EveningMeasurementTime { get; set; } = new TimeSpan(19, 0, 0);

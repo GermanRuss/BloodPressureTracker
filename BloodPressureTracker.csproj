@@ -51,4 +51,10 @@
 		<!-- Platform specific -->
 		<AndroidManifest Include="Platforms\Android\AndroidManifest.xml" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <MauiXaml Update="App.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	</ItemGroup>
 </Project>

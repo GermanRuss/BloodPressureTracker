@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using BloodPressureTracker.Utils;
 using System.Windows.Input;
 using BloodPressureTracker.Models;
 using BloodPressureTracker.Services.Interfaces;
@@ -57,7 +58,7 @@ namespace BloodPressureTracker.ViewModels
             Title = "Добавить запись";
 
             SaveCommand = new AsyncRelayCommand(SaveRecordAsync);
-            CancelCommand = new AsyncRelayCommand(CancelAsync);
+            //CancelCommand = new AsyncRelayCommand(CancelAsync);
 
             // Загружаем существующую запись на сегодня, если есть
             LoadExistingRecordAsync().SafeFireAndForget(false);

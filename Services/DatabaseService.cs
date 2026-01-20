@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using static Android.Provider.SyncStateContract;
+using MyConstants = BloodPressureTracker.Utils.Constants;
 
 namespace BloodPressureTracker.Services
 {
@@ -16,7 +18,8 @@ namespace BloodPressureTracker.Services
 
         public DatabaseService()
         {
-            InitializeAsync().SafeFireAndForget(false);
+            //InitializeAsync().SafeFireAndForget(false);
+            InitializeAsync();
         }
 
         private async Task InitializeAsync()
@@ -29,7 +32,8 @@ namespace BloodPressureTracker.Services
                 // Получаем путь для базы данных
                 var databasePath = Path.Combine(
                     FileSystem.AppDataDirectory,
-                    Constants.DATABASE_NAME);
+                    //Constants.DATABASE_NAME);
+                    MyConstants.DATABASE_NAME);
 
                 _database = new SQLiteAsyncConnection(databasePath);
 
