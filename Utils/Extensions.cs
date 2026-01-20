@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using BloodPressureTracker.Models;
 
 namespace BloodPressureTracker.Utils
 {

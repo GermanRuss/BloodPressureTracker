@@ -49,7 +49,7 @@ namespace BloodPressureTracker.ViewModels
         private string _notes;
 
         public ICommand SaveCommand { get; }
-        public ICommand CancelCommand { get; }
+        //public ICommand CancelCommand { get; }
 
         public AddRecordViewModel(IDatabaseService databaseService)
         {
