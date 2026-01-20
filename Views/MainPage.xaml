@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="BloodPressureTracker.Views.MainPage"
+             Title="Монитор давления">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Заголовок и сегодняшние показания -->
+        <VerticalStackLayout Grid.Row="0" Spacing="10" Padding="20">
+            <Label Text="Сегодня" FontSize="Title"/>
+
+            <Grid ColumnDefinitions="*,*,*">
+                <Frame Grid.Column="0" Style="{StaticResource PressureCardStyle}">
+                    <VerticalStackLayout>
+                        <Label Text="Утро" FontSize="Caption"/>
+                        <Label Text="{Binding TodayRecord.MorningPressure}" 
+                               FontSize="Large"/>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <Frame Grid.Column="1" Style="{StaticResource PressureCardStyle}">
+                    <VerticalStackLayout>
+                        <Label Text="Обед" FontSize="Caption"/>
+                        <Label Text="{Binding TodayRecord.AfternoonPressure}" 
+                               FontSize="Large"/>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <Frame Grid.Column="2" Style="{StaticResource PressureCardStyle}">
+                    <VerticalStackLayout>
+                        <Label Text="Вечер" FontSize="Caption"/>
+                        <Label Text="{Binding TodayRecord.EveningPressure}" 
+                               FontSize="Large"/>
+                    </VerticalStackLayout>
+                </Frame>
+            </Grid>
+        </VerticalStackLayout>
+
+        <!-- Последние записи -->
+        <CollectionView Grid.Row="1" ItemsSource="{Binding RecentRecords}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame Style="{StaticResource RecordCardStyle}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Grid.Column="0">
+                                <Label Text="{Binding Date, StringFormat='{0:dd.MM.yyyy}'}"
+                                       FontSize="Medium"/>
+                                <Label Text="{Binding Date, Converter={StaticResource DayOfWeekConverter}}"
+                                       FontSize="Small"/>
+                            </VerticalStackLayout>
+
+                            <HorizontalStackLayout Grid.Column="1" Spacing="5">
+                                <Label Text="{Binding SystolicMorning}"/>
+                                <Label Text="/"/>
+                                <Label Text="{Binding DiastolicMorning}"/>
+                                <Label Text="{Binding PulseMorning, StringFormat='({0})'}"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Нижняя панель -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*" Padding="10">
+            <Button Grid.Column="0" Text="?" Command="{Binding AddRecordCommand}"/>
+            <Button Grid.Column="1" Text="??" Command="{Binding ViewStatisticsCommand}"/>
+            <Button Grid.Column="2" Text="??" Command="{Binding ViewHistoryCommand}"/>
+            <Button Grid.Column="3" Text="??" Command="{Binding ViewSettingsCommand}"/>
+        </Grid>
+
+    </Grid>
+</ContentPage>

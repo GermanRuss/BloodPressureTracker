@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="BloodPressureTracker.csproj">
+    <Deploy />
+  </Project>
+</Solution>
