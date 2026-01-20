@@ -16,14 +16,21 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
+            .UseLocalNotification()  // Добавляем поддержку уведомлений
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                fonts.AddFont("MaterialIcons-Regular.ttf", "MaterialIcons");
             })
             .ConfigureEssentials(essentials =>
             {
-                essentials.UseVersionTracking();
+                essentials
+                    .UseVersionTracking()
+                    .AddAppAction("add_record", "Добавить запись", icon: "add.png")
+                    .AddAppAction("view_history", "История", icon: "history.png")
+                    .AddAppAction("view_stats", "Статистика", icon: "chart.png")
+                    .OnAppAction(App.HandleAppActions);
             });
 
 #if DEBUG
@@ -42,6 +49,7 @@ public static class MauiProgram
         builder.Services.AddTransient<StatisticsViewModel>();
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<HistoryViewModel>();
+        builder.Services.AddTransient<ExportViewModel>();
 
         // Регистрация страниц
         builder.Services.AddTransient<MainPage>();
