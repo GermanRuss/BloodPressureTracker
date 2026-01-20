@@ -1,86 +1,54 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net8.0-android;net8.0-ios;net8.0-maccatalyst</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks>
+		<!-- ВРЕМЕННО: используем только Android для упрощения -->
+		<TargetFrameworks>net9.0-android</TargetFrameworks>
+		<!-- Убираем другие платформы пока не починим основное -->
+		<!-- <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks> -->
+
 		<OutputType>Exe</OutputType>
 		<RootNamespace>BloodPressureTracker</RootNamespace>
 		<UseMaui>true</UseMaui>
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<ApplicationId>com.yourcompany.bloodpressuretracker</ApplicationId>
+
+		<!-- Application details -->
+		<ApplicationId>com.yourcompany.bloodpressure</ApplicationId>
 		<ApplicationVersion>1</ApplicationVersion>
 		<ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
+
+		<!-- Platform versions -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
-		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-android|AnyCPU'">
-		<AndroidKeyStore>False</AndroidKeyStore>
-		<AndroidSigningKeyStore>bloodpressure.keystore</AndroidSigningKeyStore>
-		<AndroidSigningStorePass></AndroidSigningStorePass>
-		<AndroidSigningKeyAlias>bloodpressure</AndroidSigningKeyAlias>
-		<AndroidSigningKeyPass></AndroidSigningKeyPass>
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
+		<AndroidSupportedAbis>arm64-v8a</AndroidSupportedAbis>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- Основные пакеты MAUI -->
+		<!-- ОСНОВНЫЕ ПАКЕТЫ (обновленные версии) -->
 		<PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
 		<PackageReference Include="CommunityToolkit.Maui" Version="8.0.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
 
-		<!-- Для PDF экспорта -->
-		<PackageReference Include="QuestPDF" Version="2023.12.7" />
+		<!-- УВЕДОМЛЕНИЯ - УБИРАЕМ ВРЕМЕННО -->
+		<!-- <PackageReference Include="Plugin.LocalNotification" Version="11.0.1" /> -->
 
-		<!-- Для графиков -->
-		<PackageReference Include="Microcharts.Maui" Version="0.2.0" />
-
-		<!-- Для уведомлений -->
-		<PackageReference Include="Plugin.LocalNotification" Version="10.0.2" />
-
-		<!-- Для работы с файлами -->
-		<PackageReference Include="Xamarin.Essentials" Version="1.8.1" />
-
-		<!-- Для отладки -->
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+		<!-- Xamarin.Essentials - УБИРАЕМ, т.к. есть конфликт -->
+		<!-- <PackageReference Include="Xamarin.Essentials" Version="1.8.1" /> -->
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- Иконки приложения -->
+		<!-- Иконки и ресурсы -->
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" />
-
-		<!-- Шрифты -->
 		<MauiFont Include="Resources\Fonts\*" />
-
-		<!-- Изображения -->
 		<MauiImage Include="Resources\Images\*" />
-
-		<!-- Стили -->
-		<MauiXaml Update="Resources\Styles\Colors.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</MauiXaml>
-		<MauiXaml Update="Resources\Styles\Styles.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</MauiXaml>
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- Platform specific files -->
-		<None Remove="Platforms\Android\AndroidManifest.xml" />
+		<!-- Platform specific -->
 		<AndroidManifest Include="Platforms\Android\AndroidManifest.xml" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<!-- Локализация -->
-		<EmbeddedResource Include="Resources\Strings\*.resx" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Resources\Styles\" />
-	  <Folder Include="Resources\Fonts\" />
-	  <Folder Include="Resources\Images\" />
 	</ItemGroup>
 </Project>
