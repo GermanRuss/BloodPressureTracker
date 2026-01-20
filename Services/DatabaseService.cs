@@ -177,6 +177,11 @@ namespace BloodPressureTracker.Services
             return false;
         }
 
+        public async Task InitializeDatabaseAsync()
+        {
+            await InitializeAsync(); // Просто вызывает уже существующий приватный метод
+        }
+
         // ============ Методы для статистики ============
         public async Task<Statistics> GetStatisticsAsync(DateTime startDate, DateTime endDate)
         {
